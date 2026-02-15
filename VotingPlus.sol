@@ -40,10 +40,16 @@ contract VotingPlus is Voting {
     function resolveAequo(uint _adminChoiseProposalId) external onlyOwner {
         require(aequoWinnerProposalIds.length > 0, "no aequo");
 
-        require(_adminChoiseProposalId < aequoWinnerProposalIds.length, "proposal id not found");
         require(_adminChoiseProposalId < proposals.length, "proposal id not found");
+        bool isProposalIdFound;
+        for( uint i = 0; i < aequoWinnerProposalIds.length; i++) {
+            if (aequoWinnerProposalIds[i] == _adminChoiseProposalId) {
+                winnerProposal = proposals[i];
+                isProposalIdFound = true;
+            }
+        }        
 
-        winnerProposal = proposals[_adminChoiseProposalId];
+        require(isProposalIdFound, "proposal id not found");
     }
 
 }
