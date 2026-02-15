@@ -27,7 +27,7 @@ contract VotingPlus is Voting {
             }
 
             if (proposalVoteCountMax != 0 && proposalVoteCountMax == currentProposal.voteCount) {
-                aequoWinnerProposalIds.push(i);
+                aequoWinnerProposalIds.push(i+1);
             }
         }
 
