@@ -44,7 +44,7 @@ contract VotingPlus is Voting {
         bool isProposalIdFound;
         for( uint i = 0; i < aequoWinnerProposalIds.length; i++) {
             if (aequoWinnerProposalIds[i] == _adminChoiseProposalId) {
-                winnerProposal = proposals[i];
+                winnerProposal = proposals[_adminChoiseProposalId];
                 isProposalIdFound = true;
             }
         }        
