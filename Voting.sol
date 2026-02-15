@@ -30,11 +30,10 @@ contract Voting is Ownable {
     Proposal[] private proposals;
     Proposal public winnerProposal;
     mapping(address => Voter) public voters;
-
     VotingDuration public votingDuration;
     mapping(address => bool) public whitelist;    
-
     WorkflowStatus public currentWorkflowStatus;
+    
 
     event VoterRegistered(address voterAddress);
     event WorkflowStatusChanged(WorkflowStatus previousStatus, WorkflowStatus newStatus);
@@ -46,36 +45,45 @@ contract Voting is Ownable {
         votingDuration.startTime = block.timestamp;
      }   
 
-    modifier voterInWhitelist() {
-        require(whitelist[msg.sender] == true, "You should be in voter whitelist :)");
+    modifier whenRegisteringVoters() {
+        require(currentWorkflowStatus == WorkflowStatus.RegisteringVoters, "Voting session hasn't started yet");
         _;
     }  
+    modifier whenProposalsRegistrationStarted() {
+         require(currentWorkflowStatus == WorkflowStatus.ProposalsRegistrationStarted, "Voting session hasn't started yet");
+         _;
+    }
 
-    function addVoter(address _newVoter) external onlyOwner {
-        require(currentWorkflowStatus == WorkflowStatus.RegisteringVoters, "Setting a voter is no longer allowed");
+    modifier whenVotingSessionStarted() {
+         require(currentWorkflowStatus == WorkflowStatus.VotingSessionStarted, "Voting session hasn't started yet");
+         _;
+    }
+
+    function addVoter(address _newVoter) external onlyOwner whenRegisteringVoters {        
         require(_newVoter != address(0), "address can't be empty");        
         voters[_newVoter].isRegistered = true;
+
         emit VoterRegistered(_newVoter);
     }
 
-    function startProposalsRegistering() external onlyOwner {
-        require(currentWorkflowStatus == WorkflowStatus.RegisteringVoters, "Voting session hasn't started yet");
-        currentWorkflowStatus = WorkflowStatus.ProposalsRegistrationStarted;              
+    function startProposalsRegistering() external onlyOwner whenRegisteringVoters {        
+        currentWorkflowStatus = WorkflowStatus.ProposalsRegistrationStarted;         
+        emit WorkflowStatusChanged(WorkflowStatus.RegisteringVoters, WorkflowStatus.ProposalsRegistrationStarted);     
     }
 
-    function endProposalsRegistering() external onlyOwner {
-        require(currentWorkflowStatus == WorkflowStatus.ProposalsRegistrationStarted, "Voting session hasn't started yet");
+    function endProposalsRegistering() external onlyOwner whenProposalsRegistrationStarted {        
         currentWorkflowStatus = WorkflowStatus.ProposalsRegistrationEnded;  
         emit WorkflowStatusChanged(WorkflowStatus.ProposalsRegistrationStarted, WorkflowStatus.ProposalsRegistrationEnded);            
     }
 
-    function addProposal(string memory _description) external {
-        require(currentWorkflowStatus == WorkflowStatus.ProposalsRegistrationStarted, "Proposals are not allowed anymore");
+    function addProposal(string memory _description) external whenProposalsRegistrationStarted{        
         require(msg.sender != address(0), "address can't be empty");
         require(voters[msg.sender].isRegistered, "You are not registered or not have permission");
 
         proposals.push(
             Proposal(msg.sender, _description, 0));
+
+        emit ProposalRegistered(proposals.length);
     }
 
     function startVotingSession() external onlyOwner {
@@ -84,8 +92,7 @@ contract Voting is Ownable {
         emit WorkflowStatusChanged(WorkflowStatus.ProposalsRegistrationEnded, WorkflowStatus.VotingSessionStarted); 
     }
 
-    function endVotingSession() external onlyOwner {
-        require(currentWorkflowStatus == WorkflowStatus.VotingSessionStarted, "Voting session hasn't started yet");
+    function endVotingSession() external onlyOwner whenVotingSessionStarted {        
         currentWorkflowStatus = WorkflowStatus.VotingSessionEnded;  
 
         votingDuration.endTime = block.timestamp;
@@ -93,8 +100,7 @@ contract Voting is Ownable {
         emit WorkflowStatusChanged(WorkflowStatus.VotingSessionStarted, WorkflowStatus.VotingSessionEnded);   
     }
 
-    function setVote(uint proposalId) external {        
-        require(currentWorkflowStatus == WorkflowStatus.VotingSessionStarted, "Voting session hasn't started yet");
+    function setVote(uint proposalId) external whenVotingSessionStarted {                
         require(proposals.length > 0, "No proposal has been submitted");
 
         uint256 indexProposalId = proposalId - 1; // Convert to zero-based array index: Eviter la proposition indice 0
@@ -105,6 +111,8 @@ contract Voting is Ownable {
         voters[msg.sender].votedProposalId = proposalId; // on garde l'index côté appelant.
         voters[msg.sender].hasVoted = true;
         proposals[indexProposalId].voteCount++;
+
+        emit Voted(msg.sender, proposalId);
     }
 
     function tallyVotes() external onlyOwner {
