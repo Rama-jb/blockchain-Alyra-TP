@@ -27,11 +27,13 @@ contract VotingPlus is Voting {
             }
 
             if (proposalVoteCountMax != 0 && proposalVoteCountMax == currentProposal.voteCount) {
-                aequoWinnerProposalIds.push(i+1);
+                aequoWinnerProposalIds.push(i);
             }
         }
 
-        winnerProposal = proposals[proposalIdWinner];
+        if (aequoWinnerProposalIds.length == 1) {
+            winnerProposal = proposals[proposalIdWinner];
+        }        
         
         emit WorkflowStatusChanged(WorkflowStatus.VotingSessionEnded, WorkflowStatus.VotesTallied );  
     }
@@ -44,8 +46,9 @@ contract VotingPlus is Voting {
         bool isProposalIdFound;
         for( uint i = 0; i < aequoWinnerProposalIds.length; i++) {
             if (aequoWinnerProposalIds[i] == _adminChoiseProposalId) {
-                winnerProposal = proposals[_adminChoiseProposalId];
+                winnerProposal = proposals[i];
                 isProposalIdFound = true;
+                break ;
             }
         }        
 
